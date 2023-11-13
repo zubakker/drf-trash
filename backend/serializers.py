@@ -1,6 +1,18 @@
+from django.contrib.auth.models import User
 from rest_framework import serializers
 
 from backend import models
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'password', 'email', 'first_name', 'last_name']
+
+class TokenSerializer(serializers.Serializer):
+    refresh = serializers.CharField(max_length=255)
+    access = serializers.CharField(max_length=255)
+class RefreshTokenSerializer(serializers.Serializer):
+    refresh = serializers.CharField(max_length=255)
 
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -40,6 +52,10 @@ class ReceiptSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Receipt
         fields = ['products', 'time', 'place', 'pk']
+class ReceiptGetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Receipt
+        fields = ['products', 'time', 'place', 'pk', 'user']
 class ReceiptPutSerializer(serializers.ModelSerializer):
     pk = serializers.IntegerField(required=True)
     class Meta:

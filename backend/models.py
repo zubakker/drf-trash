@@ -1,10 +1,8 @@
 from django.db import models
 
+from django.contrib.auth.models import User
+
 # Create your models here.
-'''
-class User:
-	type: company/user/govnmt ? 
-    '''
 class Company(models.Model):
     name    = models.TextField(max_length=255)
     type    = models.TextField(max_length=255)
@@ -25,6 +23,8 @@ class Product(models.Model):
 	trash   = models.ManyToManyField(TrashComponent)
 
 class Receipt(models.Model):
-	products    = models.ManyToManyField(Product)
-	time        = models.DateTimeField()
-	place       = models.TextField(max_length=255)
+    products    = models.ManyToManyField(Product)
+    time        = models.DateTimeField()
+    place       = models.TextField(max_length=255)
+    user        = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    # user        = models.ForeignKey(User, on_delete=models.SET_NULL)

@@ -53,4 +53,11 @@ urlpatterns = [
     path('receipt/', views.ReceiptViewSet.as_view(actions={'post': 'create',
                                                            'get': 'retrieve',
                                                            'put': 'update'})),
+    path('auth/register', views.AuthViewSet.as_view(actions={'post': 'register',
+                                                             'get': 'list'})),
+    path('auth/login',    views.AuthViewSet.as_view(actions={'post': 'login'})),
+    path('auth/refresh',  views.AuthViewSet.as_view(actions={'post': 'refresh'})),
+    path('users/me', views.UsersMeViewSet.as_view(actions={'delete': 'destroy',
+                                                           'get': 'retrieve',
+                                                           'put': 'update'})),
 ]
