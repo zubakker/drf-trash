@@ -37,6 +37,11 @@ class TrashComponentPutSerializer(serializers.ModelSerializer):
         fields = ['pk', 'name', 'recyclable', 'mass']
 
 
+class ProductGetSerializer(serializers.ModelSerializer):
+    trash_set = TrashComponentSerializer(source='trash', many=True)
+    class Meta:
+        model = models.Product
+        fields = ['name', 'company', 'type', 'trash_set', 'pk']
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Product
@@ -53,9 +58,10 @@ class ReceiptSerializer(serializers.ModelSerializer):
         model = models.Receipt
         fields = ['products', 'time', 'place', 'pk']
 class ReceiptGetSerializer(serializers.ModelSerializer):
+    products_set = ProductGetSerializer(source='products', many=True)
     class Meta:
         model = models.Receipt
-        fields = ['products', 'time', 'place', 'pk', 'user']
+        fields = ['products_set', 'time', 'place', 'pk', 'user']
 class ReceiptPutSerializer(serializers.ModelSerializer):
     pk = serializers.IntegerField(required=True)
     class Meta:

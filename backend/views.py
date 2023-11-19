@@ -12,7 +12,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.rest_framework import DjangoFilterBackend, DateTimeFilter
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -104,7 +104,7 @@ class TrashComponentViewSet(viewsets.ModelViewSet):
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = models.Product.objects.all()
-    serializer_class = serializers.ProductSerializer
+    serializer_class = serializers.ProductGetSerializer
     pagination_class = PageNumberPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['name', 'company', 'type']
@@ -144,41 +144,86 @@ class ProductViewSet(viewsets.ModelViewSet):
         self.kwargs['pk'] = pk
         return super().update(request)
 
+    @swagger_auto_schema(responses={400: 'Invalid data provided',
+                                    401: 'Unauthorized'},
+                         request_body=serializers.ProductSerializer,
+                         manual_parameters=[permissions.authorization_header])
+    def create(self, request):
+        self.serializer_class = serializers.ProductSerializer
+        return super().create(request)
+
 
 class ReceiptViewSet(viewsets.ModelViewSet):
     queryset = models.Receipt.objects.all()
     serializer_class = serializers.ReceiptGetSerializer
     pagination_class = PageNumberPagination
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['products', 'time', 'place']
+    # filterset_fields = ['products', 'place']
+    filterset_fields = {
+        'time': ['gte', 'lte'],
+        'products': ['exact'],
+        'place': ['exact']
+    }
     permission_classes = [permissions.IsOwnerOrReadOnly]
 
     receipt_pk = openapi.Parameter('pk', openapi.IN_QUERY, 
                         description="Id of a receipt to get details of", 
                         type=openapi.TYPE_INTEGER)
-    receipt_time_ge = openapi.Parameter('time_ge', openapi.IN_QUERY, 
+    receipt_time_ge = openapi.Parameter('time_gte', openapi.IN_QUERY, 
                     description="The beginning of a time period of receipts to filter by", 
                         type=openapi.TYPE_STRING)
-    receipt_time_le = openapi.Parameter('time_le', openapi.IN_QUERY, 
+    receipt_time_le = openapi.Parameter('time_lte', openapi.IN_QUERY, 
                         description="The end of a time period of receipts to filter by", 
                         type=openapi.TYPE_STRING)
     receipt_place = openapi.Parameter('place', openapi.IN_QUERY, 
                         description="Id of a company to filter receipts by", 
-                        type=openapi.TYPE_INTEGER)
+                        type=openapi.TYPE_STRING)
     receipt_type = openapi.Parameter('type', openapi.IN_QUERY, 
                         description="Type of receipts to filter by", 
                         type=openapi.TYPE_STRING)
+    receipt_stats = openapi.Parameter('stats', openapi.IN_QUERY, 
+                        description="Whether the respons needs to contain statistics or not. False by default", 
+                        type=openapi.TYPE_BOOLEAN)
     @swagger_auto_schema(responses={400: 'Product id is not a number',
                                     404: 'Invalid receipt id'},
                          manual_parameters=[receipt_pk,
                                             receipt_time_ge,
                                             receipt_time_le,
                                             receipt_place,
-                                            receipt_type])
+                                            receipt_type,
+                                            receipt_stats])
     def retrieve(self, request, **kwargs):
         pk = request.GET.get('pk')
+        stats = request.GET.get('stats')
         if not pk:
-            return super().list(self, request)
+            queryset = self.filter_queryset(self.get_queryset())
+            if stats == 'true':
+                serializer_data = self.serializer_class(queryset, many=True,
+                                                   context={'request': request}).data
+                statistics = dict()
+                cum_mass = 0
+                for receipt in serializer_data:
+                    for product in receipt['products_set']:
+                        for component in product['trash_set']:
+                            recyclable = component['recyclable']
+                            mass = component['mass']
+                            cum_mass += mass
+                            if recyclable in statistics:
+                                statistics[recyclable] += mass
+                            else:
+                                statistics[recyclable] = mass
+                print(statistics)
+            result_page = self.paginator.paginate_queryset(queryset, request)
+            serializer = self.serializer_class(result_page, many=True,
+                                               context={'request': request})
+
+            response = self.paginator.get_paginated_response(serializer.data)
+            if stats == 'true':
+                response.data['stats'] = statistics
+                response.data['cum_mass'] = cum_mass
+            # return self.paginator.get_paginated_response(serializer.data)
+            return response
+            # return super().list(self, request)
         if not pk.isdigit():
             return Response("Query parameter 'pk' is not a number", status=400) 
         self.kwargs['pk'] = pk
@@ -201,6 +246,7 @@ class ReceiptViewSet(viewsets.ModelViewSet):
         user = request.user
         if user.is_anonymous:
             return Response('Unauthorized', status=401)
+        self.serializer_class = serializers.ReceiptSerializer
         serializer = self.serializer_class(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
