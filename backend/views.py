@@ -162,7 +162,8 @@ class ReceiptViewSet(viewsets.ModelViewSet):
     filterset_fields = {
         'time': ['gte', 'lte'],
         'products': ['exact'],
-        'place': ['exact']
+        'place': ['exact'],
+        'user': ['exact'],
     }
     permission_classes = [permissions.IsOwnerOrReadOnly]
 
@@ -178,6 +179,9 @@ class ReceiptViewSet(viewsets.ModelViewSet):
     receipt_place = openapi.Parameter('place', openapi.IN_QUERY, 
                         description="Id of a company to filter receipts by", 
                         type=openapi.TYPE_STRING)
+    receipt_user = openapi.Parameter('user', openapi.IN_QUERY, 
+                        description="Id of a user to filter receipts by", 
+                        type=openapi.TYPE_INTEGER)
     receipt_type = openapi.Parameter('type', openapi.IN_QUERY, 
                         description="Type of receipts to filter by", 
                         type=openapi.TYPE_STRING)
@@ -190,6 +194,7 @@ class ReceiptViewSet(viewsets.ModelViewSet):
                                             receipt_time_ge,
                                             receipt_time_le,
                                             receipt_place,
+                                            receipt_user,
                                             receipt_type,
                                             receipt_stats])
     def retrieve(self, request, **kwargs):
