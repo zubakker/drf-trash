@@ -20,6 +20,10 @@ from drf_yasg import openapi
 from backend import models, serializers, permissions
 # Create your views here.
 
+headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept"
+        }
 
 
 class CompanyViewSet(viewsets.ModelViewSet):
@@ -48,7 +52,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
         if not pk:
             return super().list(request)
         if not pk.isdigit():
-            return Response("Query parameter 'pk' is not a number", status=400) 
+            return Response("Query parameter 'pk' is not a number", status=400, headers=headers) 
         self.kwargs['pk'] = pk
         return super().retrieve(request)
     
@@ -276,7 +280,7 @@ class AuthViewSet(viewsets.ModelViewSet):
         request.data['password'] = make_password(request.data['password'])
         serializer = self.serializer_class(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=400, headers=headers)
         user = serializer.save()
         token = RefreshToken.for_user(user)
         return Response({'refresh': str(token),
