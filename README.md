@@ -1,3 +1,11 @@
+# drf-trash
+A backend for MEPhI's group project /drf-trash
+competition, allowing customers to get information about their
+grocery wrappers including a list of materials, recyclability and
+more eco-friendly alternatives. The app also provides tools for
+getting statistics waste produced by a person, a region or a
+manufacturer, written in python + django-rest + MySQL.
+
 # How to run
 1. Clone this Repository
 2. Navigate to the directory with this README
